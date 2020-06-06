@@ -21,8 +21,8 @@ struct Mass {
   Mass(float x, float y, float m) : m(m), position(Vector2f(x, y)), velocity(0,0), isFixed(false) {}
   Mass(float x, float y) : m(0.f), position(Vector2f(x, y)), velocity(0,0), isFixed(true) {}
   friend std::ostream& operator<<(std::ostream& os, const Mass& m) {
-    os << m.position(0) << ' ' << m.position(1) << ' '
-       << m.velocity(0) << ' ' << m.velocity(1) << '\n';
+    os << m.position(0) << ' ' << m.position(1) << ' ';
+      //       << m.velocity(0) << ' ' << m.velocity(1) << ' ';
     return os;
   }
 };
@@ -88,6 +88,7 @@ struct System {
 };
 
 struct Test {
+  bool enabled;
   std::string description;
   std::function<void(void)> runFunction;
   void execute() const {
@@ -99,6 +100,7 @@ struct Test {
 
 static const std::vector<Test> tests = {
                      {
+                      .enabled = true,
                       .description = "One spring, one moving mass",
                       .runFunction = []{
                                        std::vector<Mass> masses = {
@@ -124,11 +126,50 @@ static const std::vector<Test> tests = {
 
                                        for (size_t ii = 0; ii < timesteps; ii++) {
                                          s.displayMass(1, f);
+                                         f << '\n';
                                          s.process(dt);
                                        }
                                      }
                      },
                      {
+                      .enabled = true,
+                      .description = "Three masses, three springs attached",
+                      .runFunction = []{
+                                       std::vector<Mass> masses = {
+                                                                   Mass(0, -1, 1),
+                                                                   Mass(0, 1, 1),
+                                                                   Mass(1, .2, 1)
+                                       };
+
+                                       std::vector<Spring> springs = {
+                                                                      {.k=2, .l=3},
+                                                                      {.k=1, .l=3},
+                                                                      {.k=3, .l=3}
+                                       };
+
+                                       System::Connectivity connectivity = {
+                                                                      {0, {0, 2}},
+                                                                      {1, {1, 2}},
+                                                                      {2, {0, 1}}
+                                       };
+
+                                       System s(masses, springs, connectivity);
+
+                                       const float dt = .01;
+                                       const std::size_t timesteps = 5000;
+
+                                       std::ofstream f("3m3s.dat");
+
+                                       for (size_t ii = 0; ii < timesteps; ii++) {
+                                         for(int jj = 0; jj < 3; jj++)
+                                           s.displayMass(jj, f);
+                                         f << '\n';
+                                         s.process(dt);
+                                       }
+                                     }
+                     },
+                     {
+                      .enabled = true,
                       .description = "One mass, four springs attached",
                       .runFunction = []{
                                        std::vector<Mass> masses = {
@@ -151,12 +192,13 @@ static const std::vector<Test> tests = {
                                        System s(masses, springs, connectivity);
 
                                        const float dt = .01;
-                                       const std::size_t timesteps = 10000;
+                                       const std::size_t timesteps = 5000;
 
                                        std::ofstream f("1m4s.dat");
 
                                        for (size_t ii = 0; ii < timesteps; ii++) {
                                          s.displayMass(4, f);
+                                         f << '\n';
                                          s.process(dt);
                                        }
                                      }
@@ -166,5 +208,6 @@ static const std::vector<Test> tests = {
 
 int main() {
   for(auto& test : tests)
-    test.execute();
+    if (test.enabled)
+      test.execute();
 }
